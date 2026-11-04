@@ -1,6 +1,42 @@
+# Render Blueprint for 55GMS
+# New > Blueprint in the Render dashboard, point it at your fork, done.
+#
+# With no extra env vars the site runs games, apps and the proxy (Wisp is
+# served by this same process on /wisp/ and /api/live/ — Render supports
+# websockets). Accounts/chat/billing stay off until you add their env vars.
+
 services:
   - type: web
-    name: gms
-    env: node
+    name: 55gms
+    runtime: node
     plan: free
-    startCommand: node .
+    region: singapore # closest Render region to AU
+    # devDependencies (terser, javascript-obfuscator) are needed by the build,
+    # so don't set NODE_ENV=production before install.
+    buildCommand: npm ci --no-audit --no-fund && npm run build
+    # Serves dist/current/static automatically once the build has run.
+    startCommand: node index.js
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Render injects PORT itself; index.js reads it.
+
+      # ---- Optional: uncomment what you need ----
+      # Accounts + chat (needs a Postgres DB; Render free Postgres expires
+      # after 30 days, Neon/Supabase free tiers are an alternative):
+      # - key: POSTGRES_URL
+      #   sync: false
+      # - key: ACCOUNT_BACKEND
+      #   value: postgres
+      # - key: ADMIN_TOKEN_SECRET
+      #   generateValue: true
+      #
+      # Only matters if you run more than one instance:
+      # - key: REDIS_URL
+      #   sync: false
+      #
+      # Game files load from jsDelivr by default; override if you mirror them:
+      # - key: GAME_ASSETS_BASE
+      #   sync: false
